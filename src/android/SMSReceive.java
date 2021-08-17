@@ -134,34 +134,28 @@ public class SMSReceive extends CordovaPlugin {
 			public void onReceive(Context context, Intent intent) {
 				if (intent.getAction().equals(SMS_RECEIVED_ACTION)) {
 					// Create SMS container
+					String fullBody = "";
 					SmsMessage smsmsg = null;
-					// Determine which API to use
-					if (Build.VERSION.SDK_INT >= 19) {
+					Bundle bundle = intent.getExtras();
+					Object pdus[] = (Object[]) bundle.get("pdus");
+					for (int i = 0; i < pdus.length; i++) {
 						try {
-							SmsMessage[] sms = Telephony.Sms.Intents.getMessagesFromIntent(intent);
-							smsmsg = sms[0];
+							smsmsg = SmsMessage.createFromPdu((byte[]) pdus[i]);
+							fullBody = fullBody + smsmsg.getMessageBody();
 						} catch (Exception e) {
 							Log.d(LOG_TAG, e.getMessage());
 						}
-					} else {
-						Bundle bundle = intent.getExtras();
-						Object pdus[] = (Object[]) bundle.get("pdus");
-						String fullBody = "";
-						for (int i = 0; i < pdus.length; i++) {
-							try {
-								smsmsg = SmsMessage.createFromPdu((byte[]) pdus[i]);
-								fullBody = fullBody + smsmsg.getMessageBody();
-							} catch (Exception e) {
-								Log.d(LOG_TAG, e.getMessage());
-							}
-						}
 					}
-					// Get SMS contents as JSON
 					if(smsmsg != null) {
-						JSONObject jsms = SMSReceive.this.getJsonFromSmsMessage(smsmsg);
-						jsms.put("body", fullBody)
-						SMSReceive.this.onSMSArrive(jsms);
-						Log.d(LOG_TAG, jsms.toString());
+					JSONObject jsms = SMSReceive.this.getJsonFromSmsMessage(smsmsg);
+					try{
+						jsms.put("body", fullBody);
+					}
+					catch (Exception e) {
+						Log.d(LOG_TAG, e.getMessage());
+					}
+					SMSReceive.this.onSMSArrive(jsms);
+					Log.d(LOG_TAG, jsms.toString());
 					}else{
 						Log.d(LOG_TAG, "smsmsg is null");
 					}
